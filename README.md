@@ -8,7 +8,7 @@ A PHP 5.3+ library for generating RFC 3986 compliant uniform resource identifier
 [![Build](https://img.shields.io/travis/GravityMedia/Uri.svg)](https://travis-ci.org/GravityMedia/Uri)
 [![Code Quality](https://img.shields.io/scrutinizer/g/GravityMedia/Uri.svg)](https://scrutinizer-ci.com/g/GravityMedia/Uri/?branch=master)
 [![Coverage](https://img.shields.io/scrutinizer/coverage/g/GravityMedia/Uri.svg)](https://scrutinizer-ci.com/g/GravityMedia/Uri/?branch=master)
-[![PHP Dependencies](https://www.versioneye.com/user/projects/54a6c39d27b014005400004b/badge.svg)](https://www.versioneye.com/user/projects/54a6c39d27b014005400004b)
+[![PHP Dependencies](https://www.versioneye.com/user/projects/54fcb6ba4f31084fdc000719/badge.svg)](https://www.versioneye.com/user/projects/54fcb6ba4f31084fdc000719)
 
 ##Requirements##
 
