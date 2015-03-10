@@ -45,14 +45,53 @@ $ php composer.phar install
 ```php
 require 'vendor/autoload.php';
 
+use GravityMedia\Uri\Component\Authority;
 use GravityMedia\Uri\Uri;
 
+// define default port
+Authority::$defaultPort = 80;
+
 // create URI from string
-$uri = Uri::fromString('http://username:password@example.com');
+$uri = Uri::fromString('http://username:password@example.com/this/is/a/path?argument=value#my_fragment');
 
 // dump scheme
-var_dump($uri->getScheme());
+print $uri->getScheme(); // http
 
 // dump authority
-var_dump($uri->getAuthority());
+print $uri->getAuthority(); // username:password@example.com
+
+// dump user
+print $uri->getAuthority()->getUserinfo()->getUser(); // username
+
+// dump pass
+print $uri->getAuthority()->getUserinfo()->getPass(); // password
+
+// dump host
+print $uri->getAuthority()->getHost(); // example.com
+
+// dump port
+print $uri->getAuthority()->getPort(); // 80
+
+// dump path
+print $uri->getPath(); // /this/is/a/path
+
+// dump argument
+print $uri->getQuery('argument'); // value
+
+// dump fragment
+print $uri->getFragment(); // my_fragment
+
+// remove path
+$uri->setPath(null);
+
+// change query
+$query = $uri->getQuery();
+unset($query['argument']);
+$query['foo'] = 'bar';
+
+// remove fragment
+$uri->setFragment(null);
+
+// dump URI
+print strval($uri); // http://username:password@example.com?foo=bar
 ```
