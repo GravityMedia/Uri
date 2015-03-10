@@ -24,6 +24,14 @@ class QueryTest extends \PHPUnit_Framework_TestCase
 
         $this->assertFalse(isset($query['argument']));
         $this->assertEquals(null, $query['argument']);
+
+        $query[] = 'value';
+        $this->assertEquals('value', $query[0]);
+
+        unset($query[0]);
+
+        $this->assertFalse(isset($query[0]));
+        $this->assertEquals(null, $query[0]);
     }
 
     /**
