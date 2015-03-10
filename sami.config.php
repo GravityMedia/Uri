@@ -13,7 +13,7 @@ $iterator = Finder::create()
     ->name('*.php')
     ->in(__DIR__ . '/src');
 
-returi new Sami($iterator, array(
+return new Sami($iterator, array(
     'theme' => 'default',
     'title' => 'Uri API',
     'build_dir' => __DIR__ . '/docs',
