@@ -41,26 +41,6 @@ class Userinfo
     }
 
     /**
-     * Create Userinfo from string
-     *
-     * @param string $string
-     *
-     * @return Userinfo
-     */
-    public static function fromString($string)
-    {
-        $parts = explode(':', $string, 2);
-
-        $userinfo = array('user' => $parts[0]);
-
-        if (2 === count($parts)) {
-            $userinfo['pass'] = $parts[1];
-        }
-
-        return new static($userinfo);
-    }
-
-    /**
      * Return string representation
      *
      * @return string
@@ -78,6 +58,9 @@ class Userinfo
     public function toString()
     {
         $userinfo = $this->getUser();
+        if (null === $userinfo) {
+            $userinfo = '';
+        }
 
         $credentials = $this->getPass();
         if (null !== $credentials) {
