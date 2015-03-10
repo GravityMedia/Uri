@@ -17,6 +17,11 @@ use GravityMedia\Uri\Component\Authority\Userinfo;
 class Authority
 {
     /**
+     * @var int
+     */
+    public static $defaultPort = 0;
+
+    /**
      * @var Userinfo
      */
     public $userinfo;
@@ -145,7 +150,7 @@ class Authority
     public function getPort()
     {
         if (null === $this->port) {
-            return 0;
+            return static::$defaultPort;
         }
         return $this->port;
     }
