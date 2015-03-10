@@ -20,7 +20,7 @@ class Uri
     /**
      * @var string
      */
-    public static $defaultScheme = 'file';
+    public static $defaultScheme = null;
 
     /**
      * @var string
@@ -132,16 +132,6 @@ class Uri
         }
 
         return $uri;
-    }
-
-    /**
-     * Return true if scheme is supported
-     *
-     * @return bool
-     */
-    public function isSchemeSupported()
-    {
-        return in_array($this->getScheme(), stream_get_wrappers());
     }
 
     /**
