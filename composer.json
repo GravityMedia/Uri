@@ -1,6 +1,6 @@
 {
     "name": "gravitymedia/uri",
-    "description": "A PHP 5.3+ library for generating RFC 3986 compliant uniform resource identifiers (URI)",
+    "description": "A PHP library for generating RFC 3986 compliant uniform resource identifiers (URI).",
     "license": "MIT",
     "authors": [
         {
