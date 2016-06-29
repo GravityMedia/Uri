@@ -1,59 +1,92 @@
 <?php
 /**
- * This file is part of the Uri package
+ * This file is part of the Uri package.
  *
  * @author Daniel Schröder <daniel.schroeder@gravitymedia.de>
  */
 
 namespace GravityMedia\Uri\Component;
 
-use GravityMedia\Uri\Component\Authority\Userinfo;
-
 /**
- * Authority component
+ * Authority component class.
  *
  * @package GravityMedia\Uri\Component
  */
 class Authority
 {
     /**
-     * @var int
+     * The user info
+     *
+     * @var null|UserInfo
      */
-    public static $defaultPort = 0;
+    public $userInfo;
 
     /**
-     * @var Userinfo
-     */
-    public $userinfo;
-
-    /**
-     * @var string
+     * The host
+     *
+     * @var null|string
      */
     public $host;
 
     /**
-     * @var int
+     * The port
+     *
+     * @var null|int
      */
     public $port;
 
     /**
-     * Create authority
+     * Create authority from array.
      *
-     * @param array $authority
+     * @param array $array
+     *
+     * @return Authority
+     * @throws \InvalidArgumentException
      */
-    public function __construct(array $authority = array())
+    public static function fromArray(array $array = [])
     {
-        if (isset($authority['user'])) {
-            $this->setUserinfo(new Userinfo($authority));
+        $authority = new static();
+
+        if (!isset($array['host'])) {
+            return $authority;
         }
 
-        if (isset($authority['host'])) {
-            $this->setHost($authority['host']);
+        try {
+            $authority = $authority->withHost($array['host']);
+            if (isset($array['user'])) {
+                $userInfo = UserInfo::fromArray($array)->toString();
+                $authority = $authority->withUserInfo($userInfo);
+            }
+            if (isset($array['port'])) {
+                $authority = $authority->withPort($array['port']);
+            }
+        } catch (\InvalidArgumentException $exception) {
+            throw new \InvalidArgumentException('Invalid array argument', 0, $exception);
         }
 
-        if (isset($authority['port'])) {
-            $this->setPort($authority['port']);
+        return $authority;
+    }
+
+    /**
+     * Create authority from string
+     *
+     * @param string $string
+     *
+     * @return Authority
+     * @throws \InvalidArgumentException
+     */
+    public static function fromString($string)
+    {
+        if (strlen($string) > 0 && false === strpos($string, '//')) {
+            $string = '//' . $string;
         }
+
+        $array = parse_url($string);
+        if (false === $array) {
+            throw new \InvalidArgumentException('The string argument appears to be malformed');
+        }
+
+        return static::fromArray($array);
     }
 
     /**
@@ -73,98 +106,128 @@ class Authority
      */
     public function toString()
     {
-        $authority = $this->getUserinfo();
-        if (null === $authority->getUser()) {
-            $authority = '';
-        } else {
-            $authority .= '@';
+        $authority = $this->host;
+        if (null === $authority) {
+            return '';
         }
 
-        $host = $this->getHost();
-        if (null !== $host) {
-            $authority .= $host;
+        if (null !== $this->userInfo) {
+            $authority = $this->userInfo . '@' . $authority;
         }
 
-        $port = $this->getPort();
-        if ($port > 0) {
-            $authority .= ':' . $port;
+        if (null !== $this->port) {
+            $authority .= ':' . $this->port;
         }
 
         return $authority;
     }
 
     /**
-     * Get userinfo
+     * Get user info.
      *
-     * @return Userinfo
+     * If no user info is present, an empty string will be returned.
+     *
+     * @return string
      */
-    public function getUserinfo()
+    public function getUserInfo()
     {
-        if (null === $this->userinfo) {
-            $this->userinfo = new Userinfo();
+        if (null === $this->userInfo) {
+            return '';
         }
-        return $this->userinfo;
+
+        return $this->userInfo->toString();
     }
 
     /**
-     * Set userinfo
+     * Return an instance with the specified user info.
      *
-     * @param Userinfo $userinfo
+     * @param null|string $userInfo
      *
-     * @return $this
+     * @return Authority
      */
-    public function setUserinfo(Userinfo $userinfo)
+    public function withUserInfo($userInfo)
     {
-        $this->userinfo = $userinfo;
-        return $this;
+        if (null !== $userInfo) {
+            if (!is_string($userInfo)) {
+                throw new \InvalidArgumentException('Invalid user info argument');
+            }
+
+            $userInfo = UserInfo::fromString($userInfo);
+        }
+
+        $authority = clone $this;
+        $authority->userInfo = $userInfo;
+
+        return $authority;
     }
 
     /**
-     * Get host
+     * Get host.
+     *
+     * If no host is present, an empty string will be returned.
      *
      * @return string
      */
     public function getHost()
     {
+        if (null === $this->host) {
+            return '';
+        }
+
         return $this->host;
     }
 
     /**
-     * Set host
+     * Return an instance with the specified host.
      *
      * @param string $host
      *
-     * @return $this
+     * @return Authority
+     * @throws \InvalidArgumentException
      */
-    public function setHost($host)
+    public function withHost($host)
     {
-        $this->host = $host;
-        return $this;
+        if (!is_string($host)) {
+            throw new \InvalidArgumentException('Invalid host argument');
+        }
+
+        $authority = clone $this;
+        $authority->host = $host;
+
+        return $authority;
     }
 
     /**
-     * Get port
+     * Get port.
      *
-     * @return int
+     * @return null|int
      */
     public function getPort()
     {
-        if (null === $this->port) {
-            return static::$defaultPort;
-        }
         return $this->port;
     }
 
     /**
-     * Set port
+     * Return an instance with the specified port.
      *
-     * @param int $port
+     * @param null|int $port
      *
-     * @return $this
+     * @return Authority
+     * @throws \InvalidArgumentException
      */
-    public function setPort($port)
+    public function withPort($port)
     {
-        $this->port = intval($port);
-        return $this;
+        if (null !== $port) {
+            if (!is_numeric($port)) {
+                throw new \InvalidArgumentException('Invalid port argument');
+            }
+
+            $port = (int)$port;
+        }
+
+        $authority = clone $this;
+        $authority->port = $port;
+
+        return $authority;
     }
 }

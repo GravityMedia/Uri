@@ -1,22 +1,25 @@
 <?php
 /**
- * This file is part of the Uri project
+ * This file is part of the Uri project.
  *
  * @author Daniel Schröder <daniel.schroeder@gravitymedia.de>
  */
 
 namespace GravityMedia\UriTest\Component;
+
 use GravityMedia\Uri\Component\Query;
 
 /**
- * Query test
+ * Query test class.
  *
  * @package GravityMedia\UriTest\Component
+ *
+ * @covers  GravityMedia\Uri\Component\Query
  */
 class QueryTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * Test query construction
+     * Test query construction.
      */
     public function testQueryConstruction()
     {
@@ -35,27 +38,11 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * Test query construction from traversable
-     */
-    public function testQueryConstructionFromTraversable()
-    {
-        $query = new Query(new \ArrayObject(array('argument' => 'value')));
-
-        $this->assertTrue(isset($query['argument']));
-        $this->assertEquals('value', $query['argument']);
-
-        unset($query['argument']);
-
-        $this->assertFalse(isset($query['argument']));
-        $this->assertEquals(null, $query['argument']);
-    }
-
-    /**
-     * Test query construction from array
+     * Test query construction from array.
      */
     public function testQueryConstructionFromArray()
     {
-        $query = new Query(array('argument' => 'value'));
+        $query = Query::fromArray(['argument' => 'value']);
 
         $this->assertTrue(isset($query['argument']));
         $this->assertEquals('value', $query['argument']);
@@ -67,11 +54,11 @@ class QueryTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * Test query construction from string
+     * Test query construction from string.
      */
     public function testQueryConstructionFromString()
     {
-        $query = new Query('argument=value');
+        $query = Query::fromString('argument=value');
 
         $this->assertTrue(isset($query['argument']));
         $this->assertEquals('value', $query['argument']);

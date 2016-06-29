@@ -1,6 +1,6 @@
 <?php
 /**
- * This file is part of the Uri package
+ * This file is part of the Uri package.
  *
  * @author Daniel Schröder <daniel.schroeder@gravitymedia.de>
  */
@@ -8,11 +8,11 @@
 namespace GravityMedia\Uri\Component;
 
 /**
- * Query component
+ * Query component class.
  *
  * @package GravityMedia\Uri\Component
  */
-class Query implements \ArrayAccess, \Countable, \Serializable
+class Query implements \ArrayAccess
 {
     /**
      * @var array
@@ -20,21 +20,33 @@ class Query implements \ArrayAccess, \Countable, \Serializable
     protected $query;
 
     /**
-     * Create query
+     * Create query from array.
      *
-     * @param string|array|\Traversable $query
+     * @param array $array
+     *
+     * @return Query
      */
-    public function __construct($query = array())
+    public static function fromArray(array $array = [])
     {
-        if ($query instanceof \Traversable) {
-            $query = iterator_to_array($query, true);
-        }
+        $query = new static();
+        $query->query = $array;
 
-        if (is_array($query)) {
-            $this->query = $query;
-        } else {
-            $this->unserialize($query);
-        }
+        return $query;
+    }
+
+    /**
+     * Create query from string.
+     *
+     * @param string $string
+     *
+     * @return Query
+     */
+    public static function fromString($string)
+    {
+        $query = new static();
+        parse_str($string, $query->query);
+
+        return $query;
     }
 
     /**
@@ -54,7 +66,7 @@ class Query implements \ArrayAccess, \Countable, \Serializable
      */
     public function toString()
     {
-        return $this->serialize();
+        return http_build_query($this->query);
     }
 
     /**
@@ -78,7 +90,7 @@ class Query implements \ArrayAccess, \Countable, \Serializable
      */
     public function offsetSet($offset, $value)
     {
-        if (is_null($offset)) {
+        if (null === $offset) {
             $this->query[] = $value;
         } else {
             $this->query[$offset] = $value;
@@ -91,30 +103,5 @@ class Query implements \ArrayAccess, \Countable, \Serializable
     public function offsetUnset($offset)
     {
         unset($this->query[$offset]);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function count()
-    {
-        return count($this->query);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function serialize()
-    {
-        return http_build_query($this->query);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function unserialize($serialized)
-    {
-        $this->query = array();
-        parse_str($serialized, $this->query);
     }
 }
