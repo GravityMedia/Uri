@@ -71,7 +71,7 @@ $uri = $uri->withPath('');
 $uri = $uri->withQuery('foo=bar');
 
 // remove fragment
-$uri->withFragment('');
+$uri = $uri->withFragment('');
 
 // dump URI
 print $uri->toString(); // http://username:password@example.com?foo=bar
