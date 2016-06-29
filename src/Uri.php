@@ -17,11 +17,41 @@ use Psr\Http\Message\UriInterface;
 class Uri implements UriInterface
 {
     /**
-     * The registered schemes.
+     * Unreserved characters used in paths, query strings, and fragments.
+     *
+     * @const string
+     */
+    const CHAR_UNRESERVED = 'a-zA-Z0-9_\-\.~';
+
+    /**
+     * Sub-delimiters used in query strings and fragments.
+     *
+     * @const string
+     */
+    const CHAR_SUB_DELIMS = '!\$&\'\(\)\*\+,;=';
+
+    /**
+     * Pattern for path filtering.
+     *
+     * @const string
+     */
+    const PATTERN_PATH_FILTER = '/(?:[^' . self::CHAR_UNRESERVED . self::CHAR_SUB_DELIMS
+    . '%:@\/]++|%(?![A-Fa-f0-9]{2}))/';
+
+    /**
+     * Pattern for query or fragment filtering.
+     *
+     * @const string
+     */
+    const PATTERN_QUERY_OR_FRAGMENT_FILTER = '/(?:[^' . self::CHAR_UNRESERVED . self::CHAR_SUB_DELIMS
+    . '%:@\/\?]++|%(?![A-Fa-f0-9]{2}))/';
+
+    /**
+     * The schemes.
      *
      * @var array
      */
-    protected static $registeredSchemes = [
+    protected static $schemes = [
         'http' => 80,
         'https' => 443,
     ];
@@ -38,26 +68,26 @@ class Uri implements UriInterface
      *
      * @var null|string
      */
-    public $userInfo;
+    protected $userInfo;
 
     /**
      * The host.
      *
      * @var null|string
      */
-    public $host;
+    protected $host;
 
     /**
      * The port.
      *
      * @var null|int
      */
-    public $port;
+    protected $port;
 
     /**
      * The path.
      *
-     * @var string
+     * @var null|string
      */
     protected $path;
 
@@ -76,7 +106,7 @@ class Uri implements UriInterface
     protected $fragment;
 
     /**
-     * Create URI from array.
+     * Create URI object from array.
      *
      * @param array $array
      *
@@ -92,11 +122,12 @@ class Uri implements UriInterface
         }
 
         if (isset($array['user'])) {
+            $password = null;
             if (isset($array['pass'])) {
-                $uri = $uri->withUserInfo($array['user'], $array['pass']);
-            } else {
-                $uri = $uri->withUserInfo($array['user']);
+                $password = $array['pass'];
             }
+
+            $uri = $uri->withUserInfo($array['user'], $password);
         }
 
         if (isset($array['host'])) {
@@ -123,7 +154,7 @@ class Uri implements UriInterface
     }
 
     /**
-     * Create URI from string.
+     * Create URI object from string.
      *
      * @param string $string
      *
@@ -141,14 +172,14 @@ class Uri implements UriInterface
     }
 
     /**
-     * Register port.
+     * Register scheme.
      *
      * @param string     $scheme
      * @param int|string $port
      *
      * @throws \InvalidArgumentException
      */
-    public static function registerPort($scheme, $port)
+    public static function registerScheme($scheme, $port)
     {
         if (!is_string($scheme)) {
             throw new \InvalidArgumentException('Invalid scheme argument');
@@ -158,78 +189,7 @@ class Uri implements UriInterface
             throw new \InvalidArgumentException('Invalid port argument');
         }
 
-        static::$registeredSchemes[strtolower($scheme)] = (int)$port;
-    }
-
-    /**
-     * Returns whether the port is the non-standard port for the scheme provided.
-     *
-     * @param string     $scheme
-     * @param int|string $port
-     *
-     * @return bool
-     */
-    public static function isNonStandardPort($scheme, $port)
-    {
-        if (!is_string($scheme)) {
-            return true;
-        }
-
-        $scheme = strtolower($scheme);
-        if (!isset(static::$registeredSchemes[$scheme])) {
-            return true;
-        }
-
-        if (!is_numeric($port)) {
-            return false;
-        }
-
-        $port = (int)$port;
-        return $port !== static::$registeredSchemes[$scheme];
-    }
-
-    /**
-     * Return string representation
-     *
-     * @return string
-     */
-    public function __toString()
-    {
-        return $this->toString();
-    }
-
-    /**
-     * Convert URI into a string representation
-     *
-     * @return string
-     */
-    public function toString()
-    {
-        $uri = '';
-
-        if (null !== $this->scheme) {
-            $uri .= strtolower($this->scheme) . '://';
-        }
-
-        $uri .= $this->getAuthority();
-
-        if (null !== $this->path) {
-            if (0 == strlen($this->path) || '/' !== substr($this->path, 0, 1)) {
-                $uri .= '/';
-            }
-
-            $uri .= $this->path;
-        }
-
-        if (null !== $this->query) {
-            $uri .= '?' . $this->query;
-        }
-
-        if (null !== $this->fragment) {
-            $uri .= '#' . $this->fragment;
-        }
-
-        return $uri;
+        static::$schemes[strtolower($scheme)] = (int)$port;
     }
 
     /**
@@ -249,17 +209,19 @@ class Uri implements UriInterface
      */
     public function getAuthority()
     {
-        $authority = $this->host;
-        if (null === $authority) {
+        $authority = $this->getHost();
+        if (0 === strlen($authority)) {
             return '';
         }
 
-        if (null !== $this->userInfo) {
-            $authority = $this->userInfo . '@' . $authority;
+        $userInfo = $this->getUserInfo();
+        if (strlen($userInfo) > 0) {
+            $authority = $userInfo . '@' . $authority;
         }
 
-        if (null !== $this->port) {
-            $authority .= ':' . $this->port;
+        $port = $this->getPort();
+        if (is_int($port)) {
+            $authority .= ':' . $port;
         }
 
         return $authority;
@@ -286,7 +248,7 @@ class Uri implements UriInterface
             return '';
         }
 
-        return $this->host;
+        return strtolower($this->host);
     }
 
     /**
@@ -294,7 +256,12 @@ class Uri implements UriInterface
      */
     public function getPort()
     {
-        if (!static::isNonStandardPort($this->scheme, $this->port)) {
+        $scheme = $this->getScheme();
+        if (0 === strlen($scheme) && null === $this->port) {
+            return null;
+        }
+
+        if (!isset(static::$schemes[$scheme]) || static::$schemes[$scheme] === $this->port) {
             return null;
         }
 
@@ -310,7 +277,7 @@ class Uri implements UriInterface
             return '';
         }
 
-        return $this->path;
+        return $this->filterPathValue($this->path);
     }
 
     /**
@@ -322,7 +289,7 @@ class Uri implements UriInterface
             return '';
         }
 
-        return $this->query;
+        return $this->filterQueryOrFragmentValue($this->query);
     }
 
     /**
@@ -334,7 +301,43 @@ class Uri implements UriInterface
             return '';
         }
 
-        return $this->fragment;
+        return $this->filterQueryOrFragmentValue($this->fragment);
+    }
+
+    /**
+     * Filter path value.
+     *
+     * @param string $value
+     *
+     * @return string
+     */
+    protected function filterPathValue($value)
+    {
+        return preg_replace_callback(static::PATTERN_PATH_FILTER, [$this, 'urlEncodeFirstMatch'], $value);
+    }
+
+    /**
+     * Filter query or fragment value.
+     *
+     * @param string $value
+     *
+     * @return string
+     */
+    protected function filterQueryOrFragmentValue($value)
+    {
+        return preg_replace_callback(static::PATTERN_QUERY_OR_FRAGMENT_FILTER, [$this, 'urlEncodeFirstMatch'], $value);
+    }
+
+    /**
+     * URL encode a the first match returned by a regex.
+     *
+     * @param array $matches
+     *
+     * @return string
+     */
+    protected function urlEncodeFirstMatch(array $matches)
+    {
+        return rawurlencode($matches[0]);
     }
 
     /**
@@ -451,6 +454,49 @@ class Uri implements UriInterface
 
         $uri = clone $this;
         $uri->fragment = $fragment;
+
+        return $uri;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function __toString()
+    {
+        return $this->toString();
+    }
+
+    /**
+     * Convert URI into a string representation.
+     *
+     * @return string
+     */
+    public function toString()
+    {
+        $uri = $this->getScheme();
+        if (strlen($uri) > 0) {
+            $uri .= ':';
+        }
+
+        $authority = $this->getAuthority();
+        if (strlen($authority) > 0) {
+            $uri .= '//' . $authority;
+        }
+
+        $path = $this->getPath();
+        if (strlen($path) > 0) {
+            $uri .= '/' . ltrim($this->path, '/');
+        }
+
+        $query = $this->getQuery();
+        if (strlen($query) > 0) {
+            $uri .= '?' . $query;
+        }
+
+        $fragment = $this->getFragment();
+        if (strlen($fragment) > 0) {
+            $uri .= '#' . $fragment;
+        }
 
         return $uri;
     }
