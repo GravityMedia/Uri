@@ -21,7 +21,7 @@ class Uri implements UriInterface
      *
      * @const string
      */
-    const CHAR_UNRESERVED = 'a-zA-Z0-9_\-\.~';
+    const CHAR_UNRESERVED = 'A-Za-z0-9\-\._~';
 
     /**
      * Sub-delimiters used in query strings and fragments.
@@ -35,26 +35,16 @@ class Uri implements UriInterface
      *
      * @const string
      */
-    const PATTERN_PATH_FILTER = '/(?:[^' . self::CHAR_UNRESERVED . self::CHAR_SUB_DELIMS
-    . '%:@\/]++|%(?![A-Fa-f0-9]{2}))/';
+    const PATH_FILTER_PATTERN = '/(?:[^' . self::CHAR_UNRESERVED . self::CHAR_SUB_DELIMS
+    . '%:@\/]+|%(?![A-Fa-f0-9]{2}))/';
 
     /**
      * Pattern for query or fragment filtering.
      *
      * @const string
      */
-    const PATTERN_QUERY_OR_FRAGMENT_FILTER = '/(?:[^' . self::CHAR_UNRESERVED . self::CHAR_SUB_DELIMS
-    . '%:@\/\?]++|%(?![A-Fa-f0-9]{2}))/';
-
-    /**
-     * The schemes.
-     *
-     * @var array
-     */
-    protected static $schemes = [
-        'http' => 80,
-        'https' => 443,
-    ];
+    const QUERY_OR_FRAGMENT_FILTER_PATTERN = '/(?:[^' . self::CHAR_UNRESERVED . self::CHAR_SUB_DELIMS
+    . '%:@\/\?]+|%(?![A-Fa-f0-9]{2}))/';
 
     /**
      * The scheme.
@@ -110,7 +100,7 @@ class Uri implements UriInterface
      *
      * @param array $array
      *
-     * @return Uri
+     * @return static
      * @throws \InvalidArgumentException
      */
     public static function fromArray(array $array = [])
@@ -158,7 +148,7 @@ class Uri implements UriInterface
      *
      * @param string $string
      *
-     * @return Uri
+     * @return static
      * @throws \InvalidArgumentException
      */
     public static function fromString($string)
@@ -169,27 +159,6 @@ class Uri implements UriInterface
         }
 
         return static::fromArray($array);
-    }
-
-    /**
-     * Register scheme.
-     *
-     * @param string     $scheme
-     * @param int|string $port
-     *
-     * @throws \InvalidArgumentException
-     */
-    public static function registerScheme($scheme, $port)
-    {
-        if (!is_string($scheme)) {
-            throw new \InvalidArgumentException('Invalid scheme argument');
-        }
-
-        if (!is_numeric($port)) {
-            throw new \InvalidArgumentException('Invalid port argument');
-        }
-
-        static::$schemes[strtolower($scheme)] = (int)$port;
     }
 
     /**
@@ -261,7 +230,7 @@ class Uri implements UriInterface
             return null;
         }
 
-        if (!isset(static::$schemes[$scheme]) || static::$schemes[$scheme] === $this->port) {
+        if (!SchemeRegistry::isSchemeRegistered($scheme) || SchemeRegistry::isStandardPort($scheme, $this->port)) {
             return null;
         }
 
@@ -313,7 +282,7 @@ class Uri implements UriInterface
      */
     protected function filterPathValue($value)
     {
-        return preg_replace_callback(static::PATTERN_PATH_FILTER, [$this, 'urlEncodeFirstMatch'], $value);
+        return preg_replace_callback(static::PATH_FILTER_PATTERN, [$this, 'urlEncodeFirstMatch'], $value);
     }
 
     /**
@@ -325,7 +294,7 @@ class Uri implements UriInterface
      */
     protected function filterQueryOrFragmentValue($value)
     {
-        return preg_replace_callback(static::PATTERN_QUERY_OR_FRAGMENT_FILTER, [$this, 'urlEncodeFirstMatch'], $value);
+        return preg_replace_callback(static::QUERY_OR_FRAGMENT_FILTER_PATTERN, [$this, 'urlEncodeFirstMatch'], $value);
     }
 
     /**
@@ -479,14 +448,16 @@ class Uri implements UriInterface
         }
 
         $authority = $this->getAuthority();
+        $path = $this->getPath();
         if (strlen($authority) > 0) {
+            if (strlen($path) > 0) {
+                $path = '/' . ltrim($path, '/');
+            }
+
             $uri .= '//' . $authority;
         }
 
-        $path = $this->getPath();
-        if (strlen($path) > 0) {
-            $uri .= '/' . ltrim($this->path, '/');
-        }
+        $uri .= $path;
 
         $query = $this->getQuery();
         if (strlen($query) > 0) {

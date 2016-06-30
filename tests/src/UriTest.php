@@ -15,44 +15,109 @@ use GravityMedia\Uri\Uri;
  * @package GravityMedia\UriTest
  *
  * @covers  GravityMedia\Uri\Uri
+ * @uses    GravityMedia\Uri\SchemeRegistry
  */
 class UriTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * Test URI construction without scheme from string.
+     * Test URI construction from malformed string throws exception.
+     *
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage The string argument appears to be malformed
      */
-    public function testUriWithoutSchemeFromString()
+    public function testUriConstructionFromMalformedStringThrowsException()
     {
-        $string = '/this/is/a/test/path/to/example.txt';
-        $uri = Uri::fromString($string);
-
-        $this->assertSame('', $uri->getScheme());
-        $this->assertSame('', $uri->getAuthority());
-        $this->assertSame('', $uri->getUserInfo());
-        $this->assertSame('', $uri->getHost());
-        $this->assertSame(null, $uri->getPort());
-        $this->assertSame($string, $uri->getPath());
-        $this->assertSame('', $uri->getQuery());
-        $this->assertSame('', $uri->getFragment());
-        $this->assertSame($string, $uri->toString());
+        Uri::fromString('//');
     }
 
     /**
-     * Test HTTP URI construction from string.
+     * Test URI construction from string.
+     *
+     * @dataProvider provideUriStrings()
+     *
+     * @param string $input
+     * @param string $output
+     * @param array  $expectations
      */
-    public function testHttpUriFromString()
+    public function testUriConstructionFromString($input, $output, array $expectations)
     {
-        $string = 'http://user:pass@example.com:8080/this/is/a/test/path?argument=value&array%5B0%5D=1#test_fragment';
-        $uri = Uri::fromString($string);
+        $uri = Uri::fromString($input);
 
-        $this->assertSame('http', $uri->getScheme());
-        $this->assertSame('user:pass@example.com:8080', $uri->getAuthority());
-        $this->assertSame('user:pass', $uri->getUserInfo());
-        $this->assertSame('example.com', $uri->getHost());
-        $this->assertSame(8080, $uri->getPort());
-        $this->assertSame('/this/is/a/test/path', $uri->getPath());
-        $this->assertSame('argument=value&array%5B0%5D=1', $uri->getQuery());
-        $this->assertSame('test_fragment', $uri->getFragment());
-        $this->assertSame($string, $uri->toString());
+        $this->assertSame($output, (string)$uri);
+        $this->assertSame($expectations['scheme'], $uri->getScheme());
+        $this->assertSame($expectations['authority'], $uri->getAuthority());
+        $this->assertSame($expectations['user_info'], $uri->getUserInfo());
+        $this->assertSame($expectations['host'], $uri->getHost());
+        $this->assertSame($expectations['port'], $uri->getPort());
+        $this->assertSame($expectations['path'], $uri->getPath());
+        $this->assertSame($expectations['query'], $uri->getQuery());
+        $this->assertSame($expectations['fragment'], $uri->getFragment());
+    }
+
+    /**
+     * Provide URI strings.
+     *
+     * @return array
+     */
+    public function provideUriStrings()
+    {
+        return [
+            [
+                'urn:example:animal:ferret:nose',
+                'urn:example:animal:ferret:nose',
+                [
+                    'scheme' => 'urn',
+                    'authority' => '',
+                    'user_info' => '',
+                    'host' => '',
+                    'port' => null,
+                    'path' => 'example:animal:ferret:nose',
+                    'query' => '',
+                    'fragment' => ''
+                ]
+            ],
+            [
+                '/this/is/a/path/to/example.txt',
+                '/this/is/a/path/to/example.txt',
+                [
+                    'scheme' => '',
+                    'authority' => '',
+                    'user_info' => '',
+                    'host' => '',
+                    'port' => null,
+                    'path' => '/this/is/a/path/to/example.txt',
+                    'query' => '',
+                    'fragment' => ''
+                ]
+            ],
+            [
+                'http://www.example.com:80',
+                'http://www.example.com',
+                [
+                    'scheme' => 'http',
+                    'authority' => 'www.example.com',
+                    'user_info' => '',
+                    'host' => 'www.example.com',
+                    'port' => null,
+                    'path' => '',
+                    'query' => '',
+                    'fragment' => ''
+                ]
+            ],
+            [
+                'http://user:pass@example.com:8080/this/is/a/path?argument=value&array[0]=1#test_fragment',
+                'http://user:pass@example.com:8080/this/is/a/path?argument=value&array%5B0%5D=1#test_fragment',
+                [
+                    'scheme' => 'http',
+                    'authority' => 'user:pass@example.com:8080',
+                    'user_info' => 'user:pass',
+                    'host' => 'example.com',
+                    'port' => 8080,
+                    'path' => '/this/is/a/path',
+                    'query' => 'argument=value&array%5B0%5D=1',
+                    'fragment' => 'test_fragment'
+                ]
+            ]
+        ];
     }
 }
